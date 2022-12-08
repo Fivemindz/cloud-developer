@@ -78,8 +78,8 @@ functions:
           path: groups/{groupId}/images
           cors: true
 
-  CreateImage:
-    handler: src/lambda/http/createImage.handler
+  # CreateImage:
+  #   handler: src/lambda/http/createImage.handler
 
 resources:
   Resources:
