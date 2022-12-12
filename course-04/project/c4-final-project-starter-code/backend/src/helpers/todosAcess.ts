@@ -1,24 +1,49 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-// import { createLogger } from '../utils/logger'
+//import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
-// import { TodoUpdate } from '../models/TodoUpdate';
+//import { TodoUpdate } from '../models/TodoUpdate';
 
 const XAWS = AWSXRay.captureAWS(AWS)
+const s3 = XAWS.S3({
+  signatureVersion: 'v4'
+})
+//const logger = createLogger('TodosAccess')
 
-// const logger = createLogger('TodosAccess')
-const docClient: DocumentClient = createDynamoDBClient()
-const todosTable = process.env.TODOS_TABLE
+export class TodoAccess {
+  constructor(
+    private readonly docClient: DocumentClient = createDynamoDBClient(),
+    private readonly todosTable = process.env.TODOS_TABLE,
+    private readonly bucketName = process.env.IMAGES_S3_BUCKET,
+    private readonly urlExpiration = process.env.SIGNED_URL_EXPIRATION   
+  ) {}
+  
+  async getTodosforUser(){
+    const todos = await this.docClient.scan({
+      TableName: this.todosTable
+    }).promise()
+    return todos
+  }
 
-// // TODO: Implement the dataLayer logic
-export async function createTodo(todo: TodoItem): Promise<TodoItem> {
-  await docClient.put({
-    TableName: todosTable,
-    Item: todo
-  }).promise()
 
-  return todo
+  async createTodo(todo: TodoItem): Promise<TodoItem> {
+    await this.docClient.put({
+      TableName: this.todosTable,
+      Item: {
+        ...todo
+      }
+    }).promise()
+    return todo
+  }
+
+  async getUploadUrl(imageId: string) {
+    return s3.getSignedUrl('putObject', {
+      Bucket: this.bucketName,
+      Key: imageId,
+      Expires: this.urlExpiration
+    })
+  }
 }
 
 function createDynamoDBClient() {
@@ -29,6 +54,7 @@ function createDynamoDBClient() {
       endpoint: 'http://localhost:8000'
     })
   }
-
   return new XAWS.DynamoDB.DocumentClient()
 }
+
+
