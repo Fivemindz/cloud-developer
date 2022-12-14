@@ -65,10 +65,11 @@ export class TodoAccess {
   }
 
   async getUploadUrl(imageId: string){
+    const urlInt = parseInt(this.urlExpiration)
     return s3.getSignedUrl('putObject', {
       Bucket: this.bucketName,
       Key: imageId,
-      Expires: this.urlExpiration
+      Expires: urlInt
     })
   }
 
